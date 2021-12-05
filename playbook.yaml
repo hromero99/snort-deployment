@@ -1,0 +1,60 @@
+---
+- hosts: all
+  become: yes
+  tasks:
+  - name: "Installing dependences from Ubuntu repository"
+    apt: name={{item}} state=latest update_cache=yes
+    loop: ["build-essential","libpcap-dev","libpcre3-dev","libnet1-dev","libgoogle-perftools-dev","libmnl-dev","zlib1g-dev","luajit","hwloc","libdnet-dev","libdumbnet-dev","bison","flex","liblzma-dev","openssl","libssl-dev","pkg-config","libhwloc-dev","cmake","cpputest","libsqlite3-dev","uuid-dev","libcmocka-dev","libnetfilter-queue-dev","libmnl-dev","autotools-dev","libluajit-5.1-dev","libunwind-dev"]
+
+  - name: "Creating resource folder"
+    file:
+      path: /resources
+      state: directory
+
+  - name: "Getting libdaq library"
+    git:
+      repo: https://github.com/snort3/libdaq.git
+      dest: /resources/libdaq
+      version: master
+  
+  - name: "Install libdaq"
+    shell:
+      chdir: /resources/libdaq
+      cmd: ./bootstrap&&./configure && make && make install
+
+  - name: "get gperfTools"
+    get_url:
+      url: https://github.com/gperftools/gperftools/releases/download/gperftools-2.8/gperftools-2.8.tar.gz 
+      dest:  /resources/gperftools.tar.gz
+      
+  - name: "Extract gperfTools"
+    shell:
+        cmd: tar xvf gperftools.tar.gz
+        chdir: /resources
+
+  - name: "Install gperfTools"
+    shell:
+      chdir: /resources/gperftools-2.8
+      cmd: ./configure && make && make install
+
+  - name: "Cloning Snort" 
+    git:
+      repo: git://github.com/snortadmin/snort3.git
+      dest: /snort
+      version: master
+
+  - name: "Generate Makefile"
+    shell:
+      chdir: /snort
+      cmd: ./configure_cmake.sh --prefix=/usr/local --enable-tcmalloc
+
+  - name: "Build Snort"
+    shell:
+      chdir: /snort/build
+      cmd: make && make install
+  - name:
+    shell:
+      cmd: ldconfig
+      
+
+
